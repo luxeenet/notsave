@@ -1,0 +1,191 @@
+openapi: 3.0.3
+info:
+  title: Android Notification Receiver API
+  description: Production-ready backend service for receiving and persisting Android application notifications.
+  version: 1.0.0
+servers:
+  - url: https://notify.example.com
+    description: Production HTTPS Server
+  - url: http://127.0.0.1:8080
+    description: Local Development Server
+
+paths:
+  /:
+    get:
+      summary: Root health status
+      operationId: getRootHealth
+      responses:
+        '200':
+          description: Service is online
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  service:
+                    type: string
+                    example: android-notification-receiver
+                  status:
+                    type: string
+                    example: online
+
+  /health/live:
+    get:
+      summary: Process liveness check
+      operationId: getLiveness
+      responses:
+        '200':
+          description: Process is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  status:
+                    type: string
+                    example: alive
+
+  /health/ready:
+    get:
+      summary: Service readiness check (MongoDB connectivity)
+      operationId: getReadiness
+      responses:
+        '200':
+          description: Database is connected and ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  status:
+                    type: string
+                    example: ready
+                  database:
+                    type: string
+                    example: connected
+        '503':
+          description: Database is disconnected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  status:
+                    type: string
+                    example: not_ready
+                  database:
+                    type: string
+                    example: disconnected
+
+  /api/v1/notifications:
+    post:
+      summary: Receive and persist Android notification payload
+      operationId: receiveNotification
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPayload'
+      responses:
+        '200':
+          description: Notification processed and stored successfully (or recognized duplicate)
+          headers:
+            X-Request-ID:
+              schema:
+                type: string
+              description: Unique request tracking ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Notification received
+                  notificationId:
+                    type: string
+                    example: unique_hash_123
+                  requestId:
+                    type: string
+                    example: req_01JXXXXXXX
+                  duplicate:
+                    type: boolean
+                    example: false
+        '400':
+          description: Malformed payload or validation error
+        '401':
+          description: Missing or invalid Bearer Token
+        '429':
+          description: Rate limit exceeded
+        '500':
+          description: Server or database error
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: SecretToken
+
+  schemas:
+    NotificationPayload:
+      type: object
+      required:
+        - packageName:
+        - time
+      properties:
+        id:
+          type: string
+          description: Primary notification identifier hash
+          example: test-001
+        packageName:
+          type: string
+          description: Android package application ID
+          example: com.android.settings
+        key:
+          type: string
+          description: Android notification key
+          example: 0|com.android.settings|1001|...
+        title:
+          type: string
+          description: Title text
+          example: System Update Available
+        text:
+          type: string
+          description: Notification body text
+          example: A new update is ready to install.
+        subText:
+          type: string
+          description: Additional subtext information
+          example: Settings
+        bigText:
+          type: string
+          description: Full text for expanded notification style
+          example: Version 2.0 incorporates security enhancements and system fixes.
+        category:
+          type: string
+          description: Notification category code
+          example: sys
+        time:
+          type: integer
+          format: int64
+          description: Epoch timestamp in milliseconds
+          example: 1694825600000
