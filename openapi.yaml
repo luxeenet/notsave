@@ -90,6 +90,37 @@ paths:
                     example: disconnected
 
   /api/v1/notifications:
+    get:
+      summary: List notifications with pagination and search
+      operationId: listNotifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: packageName
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of stored notifications
     post:
       summary: Receive and persist Android notification payload
       operationId: receiveNotification
@@ -137,6 +168,16 @@ paths:
           description: Rate limit exceeded
         '500':
           description: Server or database error
+
+  /api/v1/notifications/stats:
+    get:
+      summary: Retrieve notification aggregation statistics
+      operationId: getStatistics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Statistical metrics breakdown
 
 components:
   securitySchemes:
